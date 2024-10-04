@@ -7,7 +7,7 @@ export default HomePage = () => {
     <ScrollView style={styles.container}>
       {/* Greeting Section */}
       <View style={styles.header}>
-        <Text style={styles.greetingText}>Hello, User!</Text>
+        <Text style={styles.greetingText}>Hello, Farai!</Text>
         <Text style={styles.subText}>Recovery status based on AI analysis.</Text>
       </View>
 

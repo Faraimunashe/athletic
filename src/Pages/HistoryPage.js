@@ -32,8 +32,8 @@ const pastSessions = [
   {
     id: '3',
     date: '2024-09-01',
-    diagnosis: 'Sprained Ankle',
-    recoveryTime: '2 weeks',
+    diagnosis: 'Hamstring',
+    recoveryTime: '3 months',
     exercises: 'Rest, Ice, Compression, Elevation',
     details: 'A mild sprain of the ankle with no fractures. Recommended rest and gradual reintroduction of movement.',
     athlete: {
@@ -45,8 +45,8 @@ const pastSessions = [
   {
     id: '4',
     date: '2024-08-15',
-    diagnosis: 'Tennis Elbow',
-    recoveryTime: '4 weeks',
+    diagnosis: 'Torn Calf Knee Muscle',
+    recoveryTime: '6 weeks',
     exercises: 'Stretching and Strengthening exercises',
     details: 'Inflammation of the elbow caused by repetitive strain. Suggested physical therapy sessions.',
     athlete: {

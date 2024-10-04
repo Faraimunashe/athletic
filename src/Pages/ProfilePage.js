@@ -7,9 +7,9 @@ const AuthContext = React.createContext({
   user: {
     username: 'Faraimunashe', // Example data
     email: 'farai@gmail.com',
-    phone: '123-456-7890',
+    phone: '0783540959',
     gender: 'Male',
-    dob: '1990-01-01',
+    dob: '1999-01-01',
     dateJoined: '2023-01-01'
   },
   logout: () => {}, // Mock logout function
