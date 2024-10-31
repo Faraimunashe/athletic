@@ -33,7 +33,7 @@ export default function App() {
     <CredentialsContext.Provider value={{storedCredentials, setStoredCredentials}}>
       <NavigationContainer>
         <MainStack.Navigator>
-          {!storedCredentials ? (
+          {storedCredentials ? (
             <MainStack.Screen name="DashNav" component={DashNav} options={{ headerShown: false }}/>
           ) : (
             <MainStack.Screen

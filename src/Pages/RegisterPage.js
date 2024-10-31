@@ -45,7 +45,7 @@ export default function RegisterPage({ navigation }) {
     };
 
     try {
-      const response = await fetch('http://178.62.207.33:8888/api/v2/register', {
+      const response = await fetch('http://170.187.142.37:8011/api/v1/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

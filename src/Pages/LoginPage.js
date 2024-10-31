@@ -46,7 +46,7 @@ export default function LoginPage({ navigation }) {
     };
 
     try {
-      const response = await fetch('http://178.62.207.33:8888/api/v2/login', {
+      const response = await fetch('http://170.187.142.37:8011/api/v1/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

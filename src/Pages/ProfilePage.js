@@ -1,59 +1,128 @@
-import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
-// Assume AuthContext exists and provides user data and logout functionality
 const AuthContext = React.createContext({
-  user: {
-    username: 'Faraimunashe', // Example data
-    email: 'farai@gmail.com',
-    phone: '0783540959',
-    gender: 'Male',
-    dob: '1999-01-01',
-    dateJoined: '2023-01-01'
-  },
-  logout: () => {}, // Mock logout function
+  logout: () => {},
 });
 
 const ProfilePage = () => {
-  const { user, logout } = useContext(AuthContext);
+  const [user, setUser] = useState({});
+  const [isLoading, setIsLoading] = useState(true); // Activity indicator state
+  const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
 
-  const handleLogout = () => {
+  const { logout } = useContext(AuthContext);
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  // Fetch profile data from the API
+  const fetchProfileData = async () => {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://170.187.142.37:8011/api/v1/profile', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        console.log('Error fetching profile data');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfileData();
+    setRefreshing(false);
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    const token = await AsyncStorage.getItem('authToken');
+    
+    if (!token) {
+      Alert.alert('Error', 'No token found.');
+      return;
+    }
+  
     Alert.alert(
       'Logout',
       'Are you sure you want to log out?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Yes',
-          onPress: () => {
-            logout(); // Call the logout function
+          onPress: async () => {
+            try {
+              const response = await fetch('http://170.187.142.37:8011/api/v1/logout', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + token,
+                },
+              });
+  
+              if (response.ok) {
+                // Successfully logged out
+                await AsyncStorage.removeItem('authToken'); // Remove token from AsyncStorage
+                logout(); // Call the logout function from AuthContext
+              } else {
+                Alert.alert('Logout Failed', 'Could not log out. Please try again.');
+              }
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Something went wrong. Please try again.');
+            }
           },
         },
       ],
       { cancelable: false }
     );
   };
+  
 
-  const handleChangePassword = () => {
-    // Navigate to Change Password screen or show a modal for changing password
-    Alert.alert('Change Password', 'Navigate to Change Password screen or show modal here.');
-  };
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0D47A1" />
+        <Text>Loading profile...</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />
+      }
+    >
       <Text style={styles.header}>Profile Information</Text>
 
       <Image source={require('../../assets/userr.jpg')} style={styles.userImage} />
 
-      {/* Username */}
-      <Text style={styles.username}>{user.username}</Text>
+      <Text style={styles.username}>{user.name}</Text>
       <Text style={styles.email}>{user.email}</Text>
 
-      {/* User Information Cards */}
       <View style={styles.card}>
         <Text style={styles.label}>Phone:</Text>
         <Text style={styles.info}>{user.phone}</Text>
@@ -65,22 +134,10 @@ const ProfilePage = () => {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Date of Birth:</Text>
-        <Text style={styles.info}>{user.dob}</Text>
-      </View>
-
-      <View style={styles.card}>
         <Text style={styles.label}>Date Joined:</Text>
-        <Text style={styles.info}>{user.dateJoined}</Text>
+        <Text style={styles.info}>{user.created_at}</Text>
       </View>
 
-      {/* Change Password Button */}
-      <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
-        <Ionicons name="key" size={20} color="white" />
-        <Text style={styles.buttonText}>Change Password</Text>
-      </TouchableOpacity>
-
-      {/* Logout Button */}
       <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
         <Ionicons name="log-out" size={20} color="white" />
         <Text style={styles.buttonText}>Logout</Text>
@@ -92,50 +149,45 @@ const ProfilePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD', // Light blue background
+    backgroundColor: '#E3F2FD',
     padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#0D47A1', // Dark blue
+    color: '#0D47A1',
     textAlign: 'center',
     marginBottom: 20,
   },
   userImage: {
     width: 100,
     height: 100,
-    borderRadius: 50, // Makes the image circular
-    alignSelf: 'center', // Centers the image
+    borderRadius: 50,
+    alignSelf: 'center',
     marginBottom: 10,
   },
   username: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#0D47A1',
-    textAlign: 'center', // Centers the username
+    textAlign: 'center',
   },
   email: {
     fontSize: 16,
-    color: '#888', // Faint color for email
-    textAlign: 'center', // Centers the email
+    color: '#888',
+    textAlign: 'center',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#fff', // White background for cards
+    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#90CAF9', // Light blue border
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3, // For Android shadow
   },
   label: {
     fontSize: 16,
@@ -144,10 +196,10 @@ const styles = StyleSheet.create({
   },
   info: {
     fontSize: 16,
-    color: '#333', // Darker text for info
+    color: '#333',
   },
   button: {
-    backgroundColor: '#2196F3', // Blue button
+    backgroundColor: '#2196F3',
     paddingVertical: 15,
     borderRadius: 30,
     alignItems: 'center',
@@ -159,11 +211,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 10, // Spacing between icon and text
+    marginLeft: 10,
   },
   logoutButton: {
     backgroundColor: '#E53935',
-    marginBottom: 20
+    marginBottom: 20,
   },
 });
 
