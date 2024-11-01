@@ -1,91 +1,42 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-
-// Sample data for past AI physiotherapy sessions
-const pastSessions = [
-  {
-    id: '1',
-    date: '2024-09-01',
-    diagnosis: 'Sprained Ankle',
-    recoveryTime: '2 weeks',
-    exercises: 'Rest, Ice, Compression, Elevation',
-    details: 'A mild sprain of the ankle with no fractures. Recommended rest and gradual reintroduction of movement.',
-    athlete: {
-      name: 'Faraimunashe Manjeese',
-      age: 25,
-      gender: 'Male',
-    },
-  },
-  {
-    id: '2',
-    date: '2024-08-15',
-    diagnosis: 'Tennis Elbow',
-    recoveryTime: '4 weeks',
-    exercises: 'Stretching and Strengthening exercises',
-    details: 'Inflammation of the elbow caused by repetitive strain. Suggested physical therapy sessions.',
-    athlete: {
-      name: 'Jane Smith',
-      age: 30,
-      gender: 'Female',
-    },
-  },
-  {
-    id: '3',
-    date: '2024-09-01',
-    diagnosis: 'Hamstring',
-    recoveryTime: '3 months',
-    exercises: 'Rest, Ice, Compression, Elevation',
-    details: 'A mild sprain of the ankle with no fractures. Recommended rest and gradual reintroduction of movement.',
-    athlete: {
-      name: 'Faraimunashe Manjeese',
-      age: 25,
-      gender: 'Male',
-    },
-  },
-  {
-    id: '4',
-    date: '2024-08-15',
-    diagnosis: 'Torn Calf Knee Muscle',
-    recoveryTime: '6 weeks',
-    exercises: 'Stretching and Strengthening exercises',
-    details: 'Inflammation of the elbow caused by repetitive strain. Suggested physical therapy sessions.',
-    athlete: {
-      name: 'Jane Smith',
-      age: 30,
-      gender: 'Female',
-    },
-  },
-  {
-    id: '5',
-    date: '2024-09-01',
-    diagnosis: 'Sprained Ankle',
-    recoveryTime: '2 weeks',
-    exercises: 'Rest, Ice, Compression, Elevation',
-    details: 'A mild sprain of the ankle with no fractures. Recommended rest and gradual reintroduction of movement.',
-    athlete: {
-      name: 'Faraimunashe Manjeese',
-      age: 25,
-      gender: 'Male',
-    },
-  },
-  {
-    id: '6',
-    date: '2024-08-15',
-    diagnosis: 'Tennis Elbow',
-    recoveryTime: '4 weeks',
-    exercises: 'Stretching and Strengthening exercises',
-    details: 'Inflammation of the elbow caused by repetitive strain. Suggested physical therapy sessions.',
-    athlete: {
-      name: 'Jane Smith',
-      age: 30,
-      gender: 'Female',
-    },
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HistoryPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const response = await fetch('http://170.187.142.37:8011/api/v1/history', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setSessions(data.history);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
 
   const openModal = (session) => {
     setSelectedSession(session);
@@ -99,11 +50,27 @@ const HistoryPage = () => {
 
   const renderSessionItem = ({ item }) => (
     <TouchableOpacity style={styles.sessionItem} onPress={() => openModal(item)}>
-      <Text style={styles.sessionDate}>{item.date}</Text>
+      <Text style={styles.sessionDate}>{item.created_at}</Text>
       <Text style={styles.sessionDiagnosis}>{item.diagnosis}</Text>
-      <Text style={styles.sessionRecoveryTime}>Recovery Time: {item.recoveryTime}</Text>
+      <Text style={styles.sessionRecoveryTime}>Recovery Time: {item.recover_time}</Text>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0D47A1" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -111,7 +78,7 @@ const HistoryPage = () => {
 
       {/* FlatList to display past sessions */}
       <FlatList
-        data={pastSessions}
+        data={sessions}
         renderItem={renderSessionItem}
         keyExtractor={(item) => item.id}
       />
@@ -127,17 +94,15 @@ const HistoryPage = () => {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalHeader}>{selectedSession.diagnosis}</Text>
-              <Text style={styles.modalDetail}>Date: <Text style={styles.boldText}>{selectedSession.date}</Text></Text>
-              <Text style={styles.modalDetail}>Recovery Time: <Text style={styles.boldText}>{selectedSession.recoveryTime}</Text></Text>
+              <Text style={styles.modalDetail}>Date: <Text style={styles.boldText}>{selectedSession.created_at}</Text></Text>
+              <Text style={styles.modalDetail}>Recovery Time: <Text style={styles.boldText}>{selectedSession.recover_time}</Text></Text>
               <Text style={styles.modalDetail}>Recommended Exercises: <Text style={styles.boldText}>{selectedSession.exercises}</Text></Text>
-              <Text style={styles.modalDetail}>Details: <Text style={styles.boldText}>{selectedSession.details}</Text></Text>
+              <Text style={styles.modalDetail}>Details: <Text style={styles.boldText}>{selectedSession.symptoms}</Text></Text>
 
               {/* Athlete Information Section */}
               <View style={styles.athleteInfoContainer}>
                 <Text style={styles.athleteHeader}>Athlete Information</Text>
-                <Text style={styles.modalDetail}>Name: <Text style={styles.boldText}>{selectedSession.athlete.name}</Text></Text>
-                <Text style={styles.modalDetail}>Age: <Text style={styles.boldText}>{selectedSession.athlete.age}</Text></Text>
-                <Text style={styles.modalDetail}>Gender: <Text style={styles.boldText}>{selectedSession.athlete.gender}</Text></Text>
+                <Text style={styles.modalDetail}>Name: <Text style={styles.boldText}>{selectedSession.patient}</Text></Text>
               </View>
 
               <TouchableOpacity style={styles.modalButton} onPress={closeModal}>
@@ -245,6 +210,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

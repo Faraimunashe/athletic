@@ -7,7 +7,7 @@ const AuthContext = React.createContext({
   logout: () => {},
 });
 
-const ProfilePage = () => {
+const ProfilePage = ({ navigation }) => {
   const [user, setUser] = useState({});
   const [isLoading, setIsLoading] = useState(true); // Activity indicator state
   const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
@@ -82,9 +82,8 @@ const ProfilePage = () => {
               });
   
               if (response.ok) {
-                // Successfully logged out
-                await AsyncStorage.removeItem('authToken'); // Remove token from AsyncStorage
-                logout(); // Call the logout function from AuthContext
+                await AsyncStorage.removeItem('authToken');
+                navigation.navigate('AuthNav');
               } else {
                 Alert.alert('Logout Failed', 'Could not log out. Please try again.');
               }
@@ -126,11 +125,6 @@ const ProfilePage = () => {
       <View style={styles.card}>
         <Text style={styles.label}>Phone:</Text>
         <Text style={styles.info}>{user.phone}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Gender:</Text>
-        <Text style={styles.info}>{user.gender}</Text>
       </View>
 
       <View style={styles.card}>

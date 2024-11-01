@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomePage from '../Pages/HomePage';
 import AICheckPage from '../Pages/AICheckPage';
-import ProfilePage from '../Pages/ProfilePage';
+import ProfileNav from './ProfileNav';
 import HistoryPage from '../Pages/HistoryPage';
 
 const Tab = createBottomTabNavigator();
@@ -40,17 +40,17 @@ export default function DashNav({ navigation }) {
                     tabBarLabel: 'History',
                     tabBarIcon: () => (
                       <Ionicons name="list" color={'#0D47A1'} size={25} />
-                    ),
+                    ), 
                     tabBarActiveTintColor: '#0D47A1',
                 }}
             />
             <Tab.Screen 
                 name="Profile" 
-                component={ProfilePage} 
+                component={ProfileNav}
                 options={{
                     tabBarLabel: 'Profile',
                     tabBarIcon: () => (
-                      <Ionicons name="person-circle" color={'#0D47A1'} size={25} />
+                      <Ionicons name="person" color={'#0D47A1'} size={25} />
                     ),
                     tabBarActiveTintColor: '#0D47A1',
                 }}

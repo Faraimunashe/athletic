@@ -1,43 +1,71 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { Picker } from '@react-native-picker/picker'; // Import the Picker component
+import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Assume AuthContext exists and provides current user data
 const AuthContext = React.createContext({
-  user: { name: 'John Doe', gender: 'Male', age: 28 }, // Example current user data
+  user: { name: 'John Doe', gender: 'Male', age: 28 },
 });
 
-export default AICheckPage = () => {
+const AICheckPage = () => {
   const { user } = useContext(AuthContext);
   const [symptoms, setSymptoms] = useState('');
   const [athleteName, setAthleteName] = useState('');
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
-  const [isCurrentUser, setIsCurrentUser] = useState(true); // Toggle to determine if the athlete is the current user
+  const [isCurrentUser, setIsCurrentUser] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [diagnosis, setDiagnosis] = useState('');
+  const [diagnosis, setDiagnosis] = useState(null);
 
-  const handleDiagnosis = () => {
+  const handleDiagnosis = async () => {
     if (!isCurrentUser && (!athleteName || !gender || !age)) {
       Alert.alert('Error', 'Please fill out all fields for the athlete.');
       return;
     }
 
-    // Mockup function to simulate an AI diagnosis
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) return;
+
+    const postData = {
+      symptoms,
+      patient: isCurrentUser ? user.name : athleteName,
+      gender: isCurrentUser ? user.gender : gender,
+      age: isCurrentUser ? user.age : age,
+      self: isCurrentUser ? 1 : 0
+    };
+
     setLoading(true);
-    setTimeout(() => {
-      setDiagnosis('The AI suggests that you may have a sprained ankle. Estimated recovery time is 2 weeks.');
+
+    try {
+      const response = await fetch('http://170.187.142.37:8011/api/v1/physiotherapy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(postData),
+      });
+
+      const result = await response.json();
+      console.log(result.data);
+
+      if (response.ok) {
+        setDiagnosis(result.data); // Adjust based on API's response structure
+      } else {
+        Alert.alert('Error', result.message || 'Something went wrong.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to connect to the server.');
+    } finally {
       setLoading(false);
-    }, 3000);
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Page Header */}
         <Text style={styles.header}>AI Physiotherapy</Text>
 
-        {/* Toggle for current user or different athlete */}
         <View style={styles.toggleContainer}>
           <Text style={styles.label}>Is this for the current user?</Text>
           <View style={styles.toggleButtonContainer}>
@@ -56,7 +84,6 @@ export default AICheckPage = () => {
           </View>
         </View>
 
-        {/* Athlete Info Input (Required if not the current user) */}
         {!isCurrentUser && (
           <>
             <Text style={styles.label}>Athlete Name:</Text>
@@ -91,7 +118,6 @@ export default AICheckPage = () => {
           </>
         )}
 
-        {/* Symptom Input */}
         <Text style={styles.label}>Describe your symptoms:</Text>
         <TextInput
           style={styles.textArea}
@@ -102,19 +128,20 @@ export default AICheckPage = () => {
           numberOfLines={4}
         />
 
-        {/* Diagnose Button */}
         <TouchableOpacity style={styles.diagnoseButton} onPress={handleDiagnosis} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Processing...' : 'Diagnose'}</Text>
         </TouchableOpacity>
 
-        {/* Loading Indicator */}
         {loading && <ActivityIndicator size="large" color="#2196F3" style={styles.loading} />}
 
-        {/* Diagnosis Result */}
-        {diagnosis !== '' && (
+        {diagnosis && ( // Check if diagnosis exists and is not null
           <View style={styles.resultContainer}>
             <Text style={styles.resultText}>Diagnosis Result:</Text>
-            <Text style={styles.diagnosisText}>{diagnosis}</Text>
+            {/* Adjust based on what part of the diagnosis you want to display */}
+            <Text style={styles.diagnosisText}>
+              {/* Assuming diagnosis is an object with relevant keys; extract as needed */}
+              {diagnosis.diagnosis ? diagnosis.diagnosis : 'No diagnosis available.'}
+            </Text>
           </View>
         )}
       </View>
@@ -129,13 +156,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD', // Light blue background
+    backgroundColor: '#E3F2FD',
     padding: 20,
   },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#0D47A1', // Dark blue
+    color: '#0D47A1',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -147,17 +174,16 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#90CAF9', // Light blue border
+    borderColor: '#90CAF9',
     borderRadius: 10,
     padding: 15,
     backgroundColor: '#fff',
     fontSize: 14,
-    textAlignVertical: 'top',
-    height: 50
+    height: 50,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: '#90CAF9', // Light blue border
+    borderColor: '#90CAF9',
     borderRadius: 10,
     padding: 15,
     backgroundColor: '#fff',
@@ -166,7 +192,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#90CAF9', // Light blue border
+    borderColor: '#90CAF9',
     borderRadius: 10,
     backgroundColor: '#fff',
   },
@@ -175,7 +201,7 @@ const styles = StyleSheet.create({
     color: '#0D47A1',
   },
   diagnoseButton: {
-    backgroundColor: '#2196F3', // Blue button
+    backgroundColor: '#2196F3',
     paddingVertical: 15,
     borderRadius: 30,
     alignItems: 'center',
@@ -216,21 +242,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   toggleButton: {
-    backgroundColor: '#BBDEFB', // Light blue inactive
+    backgroundColor: '#BBDEFB',
     padding: 10,
     borderRadius: 10,
     flex: 1,
     alignItems: 'center',
     marginHorizontal: 5,
-    height: 40
+    height: 40,
   },
   toggleButtonActive: {
-    backgroundColor: '#2196F3', // Blue active
+    backgroundColor: '#2196F3',
     padding: 10,
     borderRadius: 10,
     flex: 1,
     alignItems: 'center',
     marginHorizontal: 5,
-    height: 40
+    height: 40,
   },
 });
+
+export default AICheckPage;

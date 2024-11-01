@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
 
@@ -7,6 +7,7 @@ export default HomePage = () => {
   const [userData, setUserData] = useState(null);
   const [lastTherapy, setLastTherapy] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // New state for refreshing
 
   useEffect(() => {
     fetchUserData();
@@ -38,20 +39,36 @@ export default HomePage = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false); // Stop refreshing
     }
+  };
+
+  // Function to handle refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchUserData();
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0D47A1" />
-        <Text>Loading data...</Text>
+        <Text>Loading data ...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh} 
+          colors={['#0D47A1']} // Color for the refresh control
+        />
+      }
+    >
       {/* Greeting Section */}
       <View style={styles.header}>
         <Text style={styles.greetingText}>Welcome back, {userData?.name || 'User'}!</Text>
