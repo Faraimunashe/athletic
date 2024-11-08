@@ -17,6 +17,9 @@ import AlertBox from "../Components/AlertBox";
 import SuccessAlertBox from "../Components/SuccessAlertBox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 //import { AuthContext } from "../Auth/AuthContext";
+import Constants from 'expo-constants';
+
+const { API_URL, APP_ENV } = Constants.expoConfig.extra;
 
 export default function LoginPage({ navigation }) {
   //const login = useContext(AuthContext);
@@ -46,7 +49,7 @@ export default function LoginPage({ navigation }) {
     };
 
     try {
-      const response = await fetch('http://170.187.142.37:8011/api/v1/login', {
+      const response = await fetch(API_URL+'/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

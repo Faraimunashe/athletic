@@ -5,6 +5,7 @@ import HomePage from '../Pages/HomePage';
 import AICheckPage from '../Pages/AICheckPage';
 import ProfileNav from './ProfileNav';
 import HistoryPage from '../Pages/HistoryPage';
+import TherapyNav from './TherapyNav';
 
 const Tab = createBottomTabNavigator();
 
@@ -13,7 +14,7 @@ export default function DashNav({ navigation }) {
         <Tab.Navigator independent={true}>
             <Tab.Screen 
                 name="Home" 
-                component={HomePage} 
+                component={TherapyNav} 
                 options={{
                     tabBarLabel: 'Home',
                     tabBarIcon: () => (

@@ -1,34 +1,49 @@
 import React, { useState } from "react";
-import styles from "./style";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Text,
-  TextInput,
-  TouchableWithoutFeedback,
-  View,
-  TouchableOpacity,
-  ActivityIndicator
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, Text, TextInput, TouchableWithoutFeedback, View, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AlertBox from "../Components/AlertBox";
 import SuccessAlertBox from "../Components/SuccessAlertBox";
+import Constants from 'expo-constants';
+import styles from "./style";
+
+const { API_URL, APP_ENV } = Constants.expoConfig.extra;
 
 export default function RegisterPage({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [dob, setDob] = useState(new Date());
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [errorMessage, setErrorMessage] = useState(false);
   const [errorMessageText, setErrorMessageText] = useState('');
   const [successMessage, setSuccessMessage] = useState(false);
   const [successMessageText, setSuccessMessageText] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const handleDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || dob;
+    setShowDatePicker(Platform.OS === 'ios');
+    setDob(currentDate);
+  };
+
+  const isEligible = (date) => {
+    const today = new Date();
+    const age = today.getFullYear() - date.getFullYear();
+    const m = today.getMonth() - date.getMonth();
+    return age > 18 || (age === 18 && m >= 0);
+  };
 
   const onLoginPress = async () => {
     if (!username || !email || !password || !passwordConfirmation) {
       setErrorMessage(true);
-      setErrorMessageText('Please every field must not be empty!');
+      setErrorMessageText('Every field must not be empty!');
+      return;
+    }
+
+    if (!isEligible(dob)) {
+      setErrorMessage(true);
+      setErrorMessageText('You must be 18 years or older to register.');
       return;
     }
 
@@ -39,36 +54,33 @@ export default function RegisterPage({ navigation }) {
     const data = {
       name: username,
       email: email,
-      phone: phone,
+      dob: `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}`,
       password: password,
       password_confirmation: passwordConfirmation
     };
 
     try {
-      const response = await fetch('http://170.187.142.37:8011/api/v1/register', {
+      const response = await fetch(API_URL + '/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
         setErrorMessage(false);
         setSuccessMessage(true);
         setSuccessMessageText(data.message);
         setIsLoading(false);
       } else {
         const data = await response.json();
-        //console.log(data.errors[0]);
         setErrorMessage(true);
         setErrorMessageText(data.errors[0]);
         setIsLoading(false);
       }
     } catch (error) {
       console.log(error);
+      
       setErrorMessage(true);
       setErrorMessageText('An unexpected error occurred. Please try again later.');
       setIsLoading(false);
@@ -81,75 +93,83 @@ export default function RegisterPage({ navigation }) {
         <View style={styles.loginScreenContainer}>
           <View style={styles.registerFormView}>
             <Text style={styles.logoText}>Register Account</Text>
-            {errorMessage ? (
-              <AlertBox message={errorMessageText} />
-            ):null}
-            {successMessage ? (
-              <SuccessAlertBox message={successMessageText} />
-            ):null}
+            {errorMessage && <AlertBox message={errorMessageText} />}
+            {successMessage && <SuccessAlertBox message={successMessageText} />}
             
+            <Text style={styles.label}>Username</Text>
             <TextInput
               placeholder="Username"
               value={username}
               onChangeText={text => setUsername(text)}
-              placeholderColor="#c4c3cb"
+              placeholderTextColor="#c4c3cb"
               style={styles.loginFormTextInput}
             />
+
+            <Text style={styles.label}>Email Address</Text>
             <TextInput
-                placeholder="Email address"
-                value={email}
-                onChangeText={text => setEmail(text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderColor="#c4c3cb"
-                style={styles.loginFormTextInput}
-            />
-            <TextInput
-              placeholder="Phone e.g +263783540959"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad" // Show numeric keyboard
-              placeholderColor="#c4c3cb"
+              placeholder="Email address"
+              value={email}
+              onChangeText={text => setEmail(text)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholderTextColor="#c4c3cb"
               style={styles.loginFormTextInput}
             />
+
+            <Text style={styles.label}>Date of Birth</Text>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.loginFormTextInput}>
+            <Text>
+              {dob ? `${dob.getFullYear()}/${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}` : "Select Date of Birth"}
+            </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={dob}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+              />
+            )}
+
+            <Text style={styles.label}>Password</Text>
             <TextInput
               placeholder="Password"
               value={password}
               onChangeText={text => setPassword(text)}
-              placeholderColor="#c4c3cb"
+              placeholderTextColor="#c4c3cb"
               style={styles.loginFormTextInput}
-              secureTextEntry={true}
+              secureTextEntry
             />
+
+            <Text style={styles.label}>Confirm Password</Text>
             <TextInput
               placeholder="Confirm password"
               value={passwordConfirmation}
               onChangeText={text => setPasswordConfirmation(text)}
-              placeholderColor="#c4c3cb"
+              placeholderTextColor="#c4c3cb"
               style={styles.loginFormTextInput}
-              secureTextEntry={true}
+              secureTextEntry
             />
+
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={() => onLoginPress()}
+              onPress={onLoginPress}
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator style={{marginTop: 15}} size="small" color="white" />
+                <ActivityIndicator style={{ marginTop: 15 }} size="small" color="white" />
               ) : (
                 <Text style={styles.buttonText}>Register</Text>
               )}
             </TouchableOpacity>
-            <View
-                style={{flexDirection: 'row', paddingHorizontal: 15, alignContent: 'center', justifyContent: 'center', marginTop: 10}}
-            >
-                <Text style={{fontSize: 15}}>Already have an account? </Text>
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('Login')}
-                    disabled={isLoading}
-                >
-                    <Text style={{fontSize: 15, color: 'blue'}}>Login here</Text>
-                </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', paddingHorizontal: 15, justifyContent: 'center', marginTop: 10 }}>
+              <Text style={{ fontSize: 15 }}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
+                <Text style={{ fontSize: 15, color: 'blue' }}>Login here</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -157,4 +177,3 @@ export default function RegisterPage({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
-

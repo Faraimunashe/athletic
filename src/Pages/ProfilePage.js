@@ -2,6 +2,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+
+const { API_URL, APP_ENV } = Constants.expoConfig.extra;
 
 const AuthContext = React.createContext({
   logout: () => {},
@@ -26,7 +29,7 @@ const ProfilePage = ({ navigation }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://170.187.142.37:8011/api/v1/profile', {
+      const response = await fetch(API_URL+'/profile', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -72,8 +75,9 @@ const ProfilePage = ({ navigation }) => {
         {
           text: 'Yes',
           onPress: async () => {
+            //await AsyncStorage.removeItem('authToken');
             try {
-              const response = await fetch('http://170.187.142.37:8011/api/v1/logout', {
+              const response = await fetch(API_URL+'/logout', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -123,14 +127,10 @@ const ProfilePage = ({ navigation }) => {
       <Text style={styles.email}>{user.email}</Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Phone:</Text>
-        <Text style={styles.info}>{user.phone}</Text>
+        <Text style={styles.label}>DOB:</Text>
+        <Text style={styles.info}>{user.dob}</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Date Joined:</Text>
-        <Text style={styles.info}>{user.created_at}</Text>
-      </View>
 
       <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
         <Ionicons name="log-out" size={20} color="white" />

@@ -41,6 +41,12 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 20,
   },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
+    marginLeft: 2,
+  },  
   loginButton: {
     backgroundColor: darkBlue,
     borderRadius: 25,

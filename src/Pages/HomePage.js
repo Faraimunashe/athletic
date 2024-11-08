@@ -2,12 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { useNavigation } from '@react-navigation/native';
+
+const { API_URL } = Constants.expoConfig.extra;
 
 export default HomePage = () => {
   const [userData, setUserData] = useState(null);
   const [lastTherapy, setLastTherapy] = useState(null);
+  const [exercises, setExercises] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // New state for refreshing
+  const [refreshing, setRefreshing] = useState(false);
+  const [counts, setCounts] = useState(0);
+  const navigation = useNavigation();
 
   useEffect(() => {
     fetchUserData();
@@ -19,7 +26,7 @@ export default HomePage = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://170.187.142.37:8011/api/v1/dashboard', {
+      const response = await fetch(`${API_URL}/dashboard`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -32,6 +39,8 @@ export default HomePage = () => {
         const data = await response.json();
         setUserData(data.user);
         setLastTherapy(data.last_record);
+        setExercises(data.exercises);
+        setCounts(data.exercise_count)
       } else {
         console.log('Error fetching user data');
       }
@@ -39,11 +48,10 @@ export default HomePage = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
-      setRefreshing(false); // Stop refreshing
+      setRefreshing(false);
     }
   };
 
-  // Function to handle refresh
   const onRefresh = () => {
     setRefreshing(true);
     fetchUserData();
@@ -53,7 +61,7 @@ export default HomePage = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0D47A1" />
-        <Text>Loading data ...</Text>
+        <Text style={styles.loadingText}>Loading data ...</Text>
       </View>
     );
   }
@@ -65,65 +73,83 @@ export default HomePage = () => {
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh} 
-          colors={['#0D47A1']} // Color for the refresh control
+          colors={['#0D47A1']}
         />
       }
     >
-      {/* Greeting Section */}
       <View style={styles.header}>
         <Text style={styles.greetingText}>Welcome back, {userData?.name || 'User'}!</Text>
-        <Text style={styles.subText}>Your recovery insights</Text>
+        <Text style={styles.subText}>Your recovery insights at a glance</Text>
       </View>
 
-      {/* AI-Generated Insights or Placeholder */}
-      {lastTherapy ? (
-        <View style={styles.statsContainer}>
-          <Text style={styles.sectionTitle}>Recovery Insights</Text>
+      <View style={styles.contentContainer}>
+        {/* Display insight cards */}
+        {lastTherapy && (
+          <View style={styles.statsContainer}>
+            <Text style={styles.sectionTitle}>Recovery Insights</Text>
 
-          {/* Injury and Recovery Time Card */}
-          <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <FontAwesome5 name="heartbeat" size={35} color="white" />
+              <View style={styles.blueBorder} />
+              <FontAwesome5 name="heartbeat" size={30} color="#333333" />
               <Text style={styles.statValue}>{lastTherapy.diagnosis ?? "-"}</Text>
               <Text style={styles.statLabel}>AI Diagnosis</Text>
             </View>
 
             <View style={styles.statCard}>
-              <FontAwesome5 name="clock" size={35} color="white" />
+              <View style={styles.blueBorder} />
+              <FontAwesome5 name="clock" size={30} color="#333333" />
               <Text style={styles.statValue}>{lastTherapy.recover_time ?? "-"}</Text>
               <Text style={styles.statLabel}>Estimated Recovery</Text>
             </View>
-          </View>
 
-          {/* Recommended Exercises and Daily Goals */}
-          <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <FontAwesome5 name="running" size={35} color="white" />
+              <View style={styles.blueBorder} />
+              <FontAwesome5 name="running" size={30} color="#333333" />
               <Text style={styles.statValue}>{lastTherapy.exercises ?? "-"}</Text>
               <Text style={styles.statLabel}>Recommended Exercise</Text>
             </View>
 
             <View style={styles.statCard}>
-              <FontAwesome5 name="list-alt" size={35} color="white" />
-              <Text style={styles.statValue}>0</Text>
+              <View style={styles.blueBorder} />
+              <FontAwesome5 name="list-alt" size={30} color="#333333" />
+              <Text style={styles.statValue}>{counts}</Text>
               <Text style={styles.statLabel}>Today’s Goals</Text>
             </View>
           </View>
-        </View>
-      ) : (
-        <View style={styles.placeholderContainer}>
-          <FontAwesome5 name="info-circle" size={50} color="#9E9E9E" />
-          <Text style={styles.placeholderText}>No recent recovery data found.</Text>
-          <Text style={styles.placeholderSubText}>
-            Begin a new session to receive customized insights tailored just for you.
-          </Text>
-        </View>
-      )}
+        )}
 
-      {/* Start Exercise Button */}
-      {/* <TouchableOpacity style={styles.workoutButton}>
-        <Text style={styles.buttonText}>Start Recommended Exercise</Text>
-      </TouchableOpacity> */}
+        {/* Display action buttons */}
+        {lastTherapy && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.navigationButton}
+              onPress={() => navigation.navigate('Exercise', { therapyId: lastTherapy.id })}
+            >
+              <Text style={styles.buttonText}>Start Today’s Goals</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navigationButtonSecondary}
+              onPress={() => navigation.navigate('Recovery', { therapyId: lastTherapy.id })}
+            >
+              <Text style={styles.buttonText}>Are You Recovering?</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Display exercises list */}
+        <View style={styles.exercisesContainer}>
+          <Text style={styles.sectionTitle}>Exercises Done</Text>
+          {exercises.map((exercise) => (
+            <View key={exercise.id} style={styles.exerciseCard}>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Text style={styles.exerciseDuration}>
+                Duration: {exercise.duration_minutes ? `${exercise.duration_minutes} mins` : 'N/A'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -131,22 +157,17 @@ export default HomePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#F8FAFB',
   },
   header: {
-    padding: 20,
+    padding: 25,
     backgroundColor: '#1976D2',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   greetingText: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
@@ -157,94 +178,125 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
-  statsContainer: {
+  contentContainer: {
     padding: 20,
-    marginTop: 10,
+  },
+  statsContainer: {
+    marginTop: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: 'bold',
     color: '#1976D2',
     marginBottom: 10,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
   statCard: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#F1F3F4', // Greyish white background
     borderRadius: 15,
-    padding: 15,
+    padding: 20,
     alignItems: 'center',
-    flex: 1,
-    margin: 5,
+    marginVertical: 10,
+    width: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 }, // Stronger shadow
+    shadowOpacity: 0.4, // Increased shadow opacity
+    shadowRadius: 10, // Larger shadow radius for more depth
+    elevation: 10,
+  },
+  blueBorder: {
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+    height: 5,
+    backgroundColor: '#0D47A1', // Blue border at the top
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#333333', // Darker text for better contrast
     marginTop: 8,
     textAlign: 'center',
   },
   statLabel: {
     fontSize: 14,
-    color: 'white',
+    color: '#666666', // Slightly darker grey for labels
     marginTop: 4,
     textAlign: 'center',
-  },
-  workoutButton: {
-    backgroundColor: '#0D47A1',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 6,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8FAFB',
   },
-  placeholderContainer: {
-    padding: 20,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 15,
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#0D47A1',
+  },
+  buttonContainer: {
+    flexDirection: 'column',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginVertical: 15,
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  navigationButton: {
+    backgroundColor: '#0D47A1',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    width: '80%',
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  navigationButtonSecondary: {
+    backgroundColor: '#64B5F6',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    width: '80%',
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  exercisesContainer: {
+    marginTop: 20,
+  },
+  exerciseCard: {
+    backgroundColor: '#F1F3F4',
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
     elevation: 4,
   },
-  placeholderText: {
+  exerciseName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#616161',
-    textAlign: 'center',
-    marginVertical: 10,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  placeholderSubText: {
-    fontSize: 14,
-    color: '#757575',
-    textAlign: 'center',
+  exerciseDuration: {
+    fontSize: 16,
+    color: '#555',
+    marginTop: 5,
   },
 });

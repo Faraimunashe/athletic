@@ -1,42 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const { API_URL } = Constants.expoConfig.extra;
 
 const HistoryPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchSessions = async () => {
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) return;
-      try {
-        const response = await fetch('http://170.187.142.37:8011/api/v1/history', {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-          },
-        });
+  const fetchSessions = async () => {
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) return;
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/therapies`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-        const data = await response.json();
-        setSessions(data.history);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
       }
-    };
 
+      const data = await response.json();
+      setSessions(data.history);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSessions();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSessions();
+  };
 
   const openModal = (session) => {
     setSelectedSession(session);
@@ -56,7 +68,7 @@ const HistoryPage = () => {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#0D47A1" />
@@ -76,14 +88,13 @@ const HistoryPage = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Past AI Physiotherapy Sessions</Text>
 
-      {/* FlatList to display past sessions */}
       <FlatList
         data={sessions}
         renderItem={renderSessionItem}
         keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
 
-      {/* Modal for detailed session view */}
       {selectedSession && (
         <Modal
           animationType="slide"
@@ -99,7 +110,6 @@ const HistoryPage = () => {
               <Text style={styles.modalDetail}>Recommended Exercises: <Text style={styles.boldText}>{selectedSession.exercises}</Text></Text>
               <Text style={styles.modalDetail}>Details: <Text style={styles.boldText}>{selectedSession.symptoms}</Text></Text>
 
-              {/* Athlete Information Section */}
               <View style={styles.athleteInfoContainer}>
                 <Text style={styles.athleteHeader}>Athlete Information</Text>
                 <Text style={styles.modalDetail}>Name: <Text style={styles.boldText}>{selectedSession.patient}</Text></Text>
@@ -119,31 +129,31 @@ const HistoryPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E3F2FD', // Light blue background
+    backgroundColor: '#F0F8FF',
     padding: 20,
   },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#0D47A1', // Dark blue
+    color: '#0D47A1',
     textAlign: 'center',
     marginBottom: 20,
   },
   sessionItem: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#90CAF9', // Light blue border
+    borderColor: '#90CAF9',
     marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3, // For Android shadow
+    shadowRadius: 5,
+    elevation: 4,
   },
   sessionDate: {
     fontSize: 16,
@@ -153,44 +163,48 @@ const styles = StyleSheet.create({
   sessionDiagnosis: {
     fontSize: 16,
     color: '#333',
-    marginVertical: 5,
+    marginVertical: 8,
   },
   sessionRecoveryTime: {
     fontSize: 14,
-    color: '#888',
+    color: '#666',
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker overlay for better visibility
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 10,
-    width: '90%', // Width of modal
-    elevation: 5, // Add some elevation
+    backgroundColor: '#FFFFFF',
+    padding: 25,
+    borderRadius: 15,
+    width: '90%',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   modalHeader: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#0D47A1',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   modalDetail: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   boldText: {
     fontWeight: 'bold',
-    color: '#0D47A1', // Make highlighted text match the theme color
+    color: '#0D47A1',
   },
   athleteInfoContainer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#E1F5FE', // Light blue background for athlete info
+    backgroundColor: '#E1F5FE',
     borderRadius: 10,
   },
   athleteHeader: {
@@ -200,9 +214,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalButton: {
-    backgroundColor: '#FF5722', // Red button for emphasis
-    paddingVertical: 15,
-    borderRadius: 30,
+    backgroundColor: '#0288D1',
+    paddingVertical: 12,
+    borderRadius: 25,
     alignItems: 'center',
     marginTop: 20,
   },

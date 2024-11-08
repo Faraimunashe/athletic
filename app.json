@@ -2,6 +2,10 @@
   "expo": {
     "name": "athle",
     "slug": "athle",
+    "extra": {
+      "API_URL": "http://10.150.38.27:8080",
+      "APP_ENV": "development"
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
